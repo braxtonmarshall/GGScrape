@@ -74,7 +74,7 @@ class GGScraper (object):
         # Send to writer queue
         if type(temp_dict) is dict:
             for key in temp_dict:
-                input = key + "/" + temp_dict[key]
+                input = key + "/" + temp_dict[key][0] + "/" + temp_dict[key][1]
                 self.writerQueue.put(input)
         # stop processing jobs
         if type(bad_rank_count) is int and bad_rank_count > 10:
@@ -113,7 +113,8 @@ class GGScraper (object):
 
                 summoner = input_.split("/")[0]
                 rank = input_.split("/")[1]
-                full_input = summoner.ljust(16) + "\t\t" + rank + "\n"
+                games = input_.split("/")[2]
+                full_input = summoner.ljust(16) + "\t\t" + rank + "\t\t" + str(games) + "\n"
                 
                 for line in file:
                     if summoner.ljust(16) in line and rank in line:
@@ -134,13 +135,16 @@ class GGScraper (object):
                   "td", attrs={"class": "select_summoner ranking-table__cell ranking-table__cell--summoner"}).select_one("span").text
             Current_Rank = result.find(
                    "td", attrs={"class": "ranking-table__cell ranking-table__cell--tier"}).text.strip().replace(" ", "")
-
+            Summoner_Wins = result.find(
+                "div", attrs={"class": "winratio-graph__text winratio-graph__text--left"}).text.strip()
+            Summoner_Loses = result.find(
+                "div", attrs={"class": "winratio-graph__text winratio-graph__text--right"}).text.strip()
+            Summoner_Total_Games = int(Summoner_Wins) + int(Summoner_Loses)
             # Reached bottom rank, skip summoner
-            #if "Diamond" in Current_Rank or "Platinum" in Current_Rank or "Gold" in Current_Rank or "Silver" in Current_Rank or "Bronze" in Current_Rank:
             check_rank = ''.join(i for i in Current_Rank if not i.isnumeric())
             if check_rank not in self.rank_array[:self.target_index]:
                 bad_rank_count += 1
                 pass
             else:
-                summoner_dict[SummonerName] = Current_Rank
+                summoner_dict[SummonerName] = [Current_Rank, str(Summoner_Total_Games)]
         return summoner_dict, bad_rank_count
